@@ -1,0 +1,183 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Diabetes Prediction System</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        body { font-family: Arial; margin: 20px; background: #f5f5f5; }
+        .container { max-width: 1200px; margin: 0 auto; }
+        .header { background: #2c3e50; color: white; padding: 20px; text-align: center; border-radius: 10px; margin-bottom: 20px; }
+        .card { background: white; padding: 20px; margin: 10px 0; border-radius: 10px; box-shadow: 0 2px 5px rgba(0,0,0,0.1); }
+        .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
+        @media (max-width: 768px) { .grid { grid-template-columns: 1fr; } }
+        .form-group { margin: 15px 0; }
+        label { display: block; margin-bottom: 5px; font-weight: bold; }
+        input, select { width: 100%; padding: 10px; border: 1px solid #ddd; border-radius: 5px; }
+        .btn { background: #3498db; color: white; padding: 12px; border: none; border-radius: 5px; width: 100%; cursor: pointer; }
+        .result { padding: 15px; margin: 15px 0; border-radius: 5px; text-align: center; display: none; }
+        .low-risk { background: #d4edda; color: #155724; }
+        .medium-risk { background: #fff3cd; color: #856404; }
+        .high-risk { background: #f8d7da; color: #721c24; }
+        .tabs { display: flex; border-bottom: 1px solid #ddd; margin-bottom: 15px; }
+        .tab { padding: 10px 15px; cursor: pointer; }
+        .tab.active { border-bottom: 3px solid #3498db; font-weight: bold; }
+        .tab-content { display: none; padding: 15px 0; }
+        .tab-content.active { display: block; }
+        .ml-image { width: 100%; max-width: 400px; border-radius: 5px; margin: 10px auto; display: block; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>Diabetes Prediction System</h1>
+            <p>Machine Learning for Early Detection</p>
+        </div>
+
+        <div class="grid">
+            <!-- Prediction Form -->
+            <div class="card">
+                <h2>Patient Assessment</h2>
+                <form id="prediction-form">
+                    <div class="form-group">
+                        <label for="age">Age</label>
+                        <input type="number" id="age" min="1" max="120" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="bmi">BMI</label>
+                        <input type="number" id="bmi" min="10" max="70" step="0.1" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="glucose">Glucose (mg/dL)</label>
+                        <input type="number" id="glucose" min="50" max="400" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="bp">Blood Pressure</label>
+                        <input type="number" id="bp" min="50" max="200" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="family-history">Family History</label>
+                        <select id="family-history" required>
+                            <option value="">Select</option>
+                            <option value="No">No</option>
+                            <option value="Yes">Yes</option>
+                        </select>
+                    </div>
+                    <button type="submit" class="btn">Predict Diabetes Risk</button>
+                </form>
+                <div id="prediction-result" class="result"></div>
+            </div>
+
+            <!-- Visualizations -->
+            <div class="card">
+                <h2>ML Analysis Dashboard</h2>
+                <div class="tabs">
+                    <div class="tab active" data-tab="ml-viz">ML Visualizations</div>
+                    <div class="tab" data-tab="model-info">Model Info</div>
+                </div>
+
+                <div class="tab-content active" id="ml-viz">
+                    <h3>Machine Learning Generated Plots</h3>
+                    <img src="basic_eda.png" alt="Diabetes Distribution" class="ml-image" onerror="this.style.display='none'">
+                    <img src="age_glucose_scatter.png" alt="Age vs Glucose" class="ml-image" onerror="this.style.display='none'">
+                    <img src="bmi_distribution.png" alt="BMI Distribution" class="ml-image" onerror="this.style.display='none'">
+                    <img src="feature_importance.png" alt="Feature Importance" class="ml-image" onerror="this.style.display='none'">
+                </div>
+
+                <div class="tab-content" id="model-info">
+                    <h3>Model Performance</h3>
+                    <p><strong>Accuracy:</strong> 38%</p>
+                    <p><strong>Patients Analyzed:</strong> 170</p>
+                    <p><strong>Diabetic Patients:</strong> 80</p>
+                    <p><strong>Algorithm:</strong> Logistic Regression</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Tab functionality
+        document.querySelectorAll('.tab').forEach(tab => {
+            tab.addEventListener('click', () => {
+                document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+                document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
+                tab.classList.add('active');
+                document.getElementById(tab.getAttribute('data-tab')).classList.add('active');
+            });
+        });
+
+        // ML Model
+        class DiabetesModel {
+            constructor() {
+                this.weights = {
+                    intercept: -8.5,
+                    Age: 0.03,
+                    BMI: 0.08, 
+                    Glucose: 0.05,
+                    BloodPressure: 0.02,
+                    FamilyHistory: 0.6
+                };
+            }
+            
+            predict(age, bmi, glucose, bp, familyHistory) {
+                const familyNum = familyHistory === 'Yes' ? 1 : 0;
+                const score = 
+                    (age * this.weights.Age) +
+                    (bmi * this.weights.BMI) +
+                    (glucose * this.weights.Glucose) +
+                    (bp * this.weights.BloodPressure) +
+                    (familyNum * this.weights.FamilyHistory) +
+                    this.weights.intercept;
+                
+                const probability = 1 / (1 + Math.exp(-score));
+                const prediction = probability > 0.5 ? 1 : 0;
+                
+                return {
+                    prediction: prediction,
+                    probability: probability,
+                    riskLevel: this.getRiskLevel(probability)
+                };
+            }
+            
+            getRiskLevel(probability) {
+                if (probability < 0.3) return "Low Risk";
+                if (probability < 0.7) return "Medium Risk";
+                return "High Risk";
+            }
+        }
+
+        const model = new DiabetesModel();
+
+        // Form submission
+        document.getElementById('prediction-form').addEventListener('submit', function(e) {
+            e.preventDefault();
+            const age = parseInt(document.getElementById('age').value);
+            const bmi = parseFloat(document.getElementById('bmi').value);
+            const glucose = parseInt(document.getElementById('glucose').value);
+            const bp = parseInt(document.getElementById('bp').value);
+            const familyHistory = document.getElementById('family-history').value;
+
+            const result = model.predict(age, bmi, glucose, bp, familyHistory);
+            
+            const resultDiv = document.getElementById('prediction-result');
+            resultDiv.innerHTML = 
+                '<h3>Diabetes Risk Assessment</h3>' +
+                '<p><strong>Prediction:</strong> ' + (result.prediction ? 'Likely Diabetic' : 'Likely Healthy') + '</p>' +
+                '<p><strong>Risk Level:</strong> ' + result.riskLevel + '</p>' +
+                '<p><strong>Probability:</strong> ' + (result.probability * 100).toFixed(1) + '%</p>' +
+                '<p><strong>Recommendation:</strong> ' + getRecommendation(result.riskLevel) + '</p>';
+            
+            resultDiv.className = 'result ' + result.riskLevel.toLowerCase().replace(' risk', '-risk');
+            resultDiv.style.display = 'block';
+        });
+
+        function getRecommendation(riskLevel) {
+            switch(riskLevel) {
+                case 'Low Risk': return 'Maintain healthy lifestyle with regular checkups.';
+                case 'Medium Risk': return 'Monitor glucose levels and consider lifestyle changes.';
+                case 'High Risk': return 'Consult healthcare provider for proper evaluation.';
+                default: return 'Please consult a healthcare professional.';
+            }
+        }
+    </script>
+</body>
+</html>
